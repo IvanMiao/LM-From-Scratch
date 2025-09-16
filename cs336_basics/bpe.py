@@ -1,6 +1,13 @@
+"""BPE Algo"""
+
 import os
 import regex
 
+# 用于 pre-tokenizaiton 的正则表达式，将原始文本分隔成初始的chunks。这里用的是GPT-2所使用的模式。
+# (?:[sdmt]|ll|ve|re) 匹配常见的英文缩写，如's, 'll
+# ?\p{L}+ | ?\p{N}+ 匹配一个或多个 Unicode 字母或数字，前面可能有一个空格
+# ?[^\s\p{L}\p{N}]+ 匹配一个或多个非空格，非字母，非数字的字符，前面可能有一个空格
+# \s+(?!\S) | \s+ 匹配一个或多个空白字符
 PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
 
 
@@ -9,7 +16,7 @@ def merge(
     pair: tuple[int, int],
     new_index: int
 ) -> list[int]:
-    """Return `indices`, 
+    """Return `indices`(list of ints, representing the byte sequence of a token),
     but with all instances of `pair` replaced with `new_index`."""
     new_indices = []
     i = 0
@@ -24,6 +31,7 @@ def merge(
 
 
 def initialize_vocab(special_tokens: list[str]) -> dict[int, bytes]:
+    """创建初始词汇表 vocab, 先储存0-255的整数-字节表示的映射, 然后从256开始为特殊token分配ID"""
     vocab = {i: bytes([i]) for i in range(256)}
     next_id = 256
 
@@ -39,7 +47,14 @@ def get_token_data(
     special_tokens: list[str],
     text:str
 ) -> dict[bytes, tuple[int, list[int]]]:
-    """get token data"""
+    """
+    pre-tokenization, 收集初始 token 的数据
+    return: token_data
+            key:    初始token的字节表示
+            value:  一个tuple (count, seq),
+                    count 为该token在文本中出现的次数,
+                    seq 是该token每个字节对应的整数列表
+    """
     token_counts: dict[bytes, int] = {}
     token_data: dict[bytes, tuple[int, list[int]]] = {}
 
@@ -51,16 +66,13 @@ def get_token_data(
 
     for chunk in all_chunks:
         if chunk in special_tokens:
-            spe_token = chunk.encode('utf-8')
-            token_count = token_counts.get(spe_token, 0) + 1
-            token_counts[spe_token] = token_count
-            continue
+            token = chunk.encode('utf-8')
+            token_counts[token] = 1
         else:
             for match_seq in regex.finditer(PAT, chunk):
                 token = match_seq.group().encode('utf-8')
-                token_count = token_counts.get(token, 0) + 1
-                token_counts[token] = token_count
-                token_data[token] = (token_count, list(token))
+                token_counts[token] = token_counts.get(token, 0) + 1
+                token_data[token] = (token_counts[token], list(token))
 
     return token_data
 
@@ -122,12 +134,10 @@ def train_bpe(
         for tok_bytes, (count, seq) in token_data.items():
             if len(seq) < 2:
                 continue
-            freq: int = count
             for i in range(len(seq) - 1):
                 a, b = seq[i], seq[i + 1]
                 pair = (a, b)
-                pair_counts[pair] = pair_counts.get(pair, 0) + freq
-
+                pair_counts[pair] = pair_counts.get(pair, 0) + count
         if not pair_counts:
             break
 
