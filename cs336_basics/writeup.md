@@ -40,9 +40,27 @@ def decode_utf8_bytes_to_str_wrong(bytestring: bytes):
 Suppose: The function will decode each single byte, but thers are some characters in UTF-8 are encoded by >=2 bytes.
 
 (c) Two byte sequence that does not decode to any Unicode character(s):
-#1 
+#1 0xff, 0xff
 
-#2 
+#2 0xff, 0xff, 0xff
 
 ### 2.3 Subword Tokenization
+
+### 2.4 BPE Tokenizer Training
+
+### 2.5 Experimenting with BPE Tokenizer Training
+
+- function `train_bpe` in [bpe.py](../cs336_basics/bpe.py)
+
+- function `train_bpe_tinystories`
+	- (a) without using `multiprocessing`, it would cost about 18 min. After applying that, [TODO]
+	- (b) TODO
+
+- function `train_bpe_expts_owt`
+	- (a) TODO
+	- (b) TODO
+
+
+### 2.6 BPE Tokenizer: Encoding and Decoding
+
 

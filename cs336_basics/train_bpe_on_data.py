@@ -2,6 +2,7 @@
 
 import os
 import regex
+from tqdm import tqdm
 
 
 # 用于 pre-tokenizaiton 的正则表达式，将原始文本分隔成初始的chunks。这里用的是GPT-2所使用的模式。
@@ -46,8 +47,9 @@ def initialize_vocab(special_tokens: list[str]) -> dict[int, bytes]:
 
 def get_token_data(
     special_tokens: list[str],
-    text:str
-) -> dict[bytes, tuple[int, list[int]]]:
+    text:str,
+    token_data: dict[bytes, tuple[int, list[int]]]
+) -> None:
     """
     pre-tokenization, 收集初始 token 的数据
     return: token_data
@@ -56,8 +58,6 @@ def get_token_data(
                     count 为该token在文本中出现的次数,
                     seq 是该token每个字节对应的整数列表
     """
-    token_counts: dict[bytes, int] = {}
-    token_data: dict[bytes, tuple[int, list[int]]] = {}
 
     if special_tokens:
         special_pattern = "|".join(map(regex.escape, special_tokens))
@@ -68,14 +68,13 @@ def get_token_data(
     for chunk in all_chunks:
         if chunk in special_tokens:
             token = chunk.encode('utf-8')
-            token_counts[token] = 1
+            count, seq = token_data.get(token, (0, list(token)))
+            token_data[token] = (count + 1, seq)
         else:
             for match_seq in regex.finditer(PAT, chunk):
                 token = match_seq.group().encode('utf-8')
-                token_counts[token] = token_counts.get(token, 0) + 1
-                token_data[token] = (token_counts[token], list(token))
-
-    return token_data
+                count, seq = token_data.get(token, (0, list(token)))
+                token_data[token] = (count + 1, seq)
 
 
 def train_bpe(
@@ -108,8 +107,8 @@ def train_bpe(
     vocab: dict[int, bytes] = {}
     merges: list[tuple[bytes, bytes]] = []
 
-    with open(input_path, 'r', encoding='utf-8') as f:
-        text = f.read()
+    # with open(input_path, 'r', encoding='utf-8') as f:
+    #     text = f.read()
 
     # 1. initialize vocab
     vocab = initialize_vocab(special_tokens)
@@ -121,7 +120,12 @@ def train_bpe(
     #             value   一个 tupel, (这个token的出现次数, 这个token的每个字节组成的整数列表)
     # =========================================
     token_data: dict[bytes, tuple[int, list[int]]] = {}
-    token_data = get_token_data(special_tokens ,text)
+    # token_data = get_token_data(special_tokens ,text)
+    
+    print(f"Reading and pre-tokenizing file ...")
+    with open (input_path, 'r', encoding='utf-8') as f:
+        for line in tqdm(f, desc="Processing file"):
+            get_token_data(special_tokens, line, token_data)
 
     if len(vocab) > vocab_size:
         return (vocab, merges)
@@ -129,7 +133,10 @@ def train_bpe(
     # =========================================
     # 3. Main Loop
     # =========================================
-    while len(vocab) < vocab_size:
+    num_merges = vocab_size - len(vocab)
+    print(f"Traninig begin! File path: {input_path}")
+    # while len(vocab) < vocab_size:
+    for i in tqdm(range(num_merges), desc="Training BPE"):
         pair_counts: dict[tuple[int, int], int] = {}
         # 对每个seq，统计 pair 频次
         for tok_bytes, (count, seq) in token_data.items():
@@ -174,4 +181,4 @@ def train_bpe_expts_owt():
     pass
 
 
-# train_bpe("../data/TinyStoriesV2-GPT4-valid.txt", 10000, ["<|endoftext|>"])
+train_bpe("../data/TinyStoriesV2-GPT4-train.txt", 10000, ["<|endoftext|>"])
