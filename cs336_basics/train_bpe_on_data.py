@@ -122,8 +122,8 @@ def train_bpe(
     token_data: dict[bytes, tuple[int, list[int]]] = {}
     # token_data = get_token_data(special_tokens ,text)
     
-    print(f"Reading and pre-tokenizing file ...")
-    with open (input_path, 'r', encoding='utf-8') as f:
+    print("Reading and pre-tokenizing file ...")
+    with open (input_path, encoding='utf-8') as f:
         for line in tqdm(f, desc="Processing file"):
             get_token_data(special_tokens, line, token_data)
 
@@ -181,4 +181,4 @@ def train_bpe_expts_owt():
     pass
 
 
-train_bpe("../data/TinyStoriesV2-GPT4-train.txt", 10000, ["<|endoftext|>"])
+train_bpe("../data/TinyStoriesV2-GPT4-valid.txt", 10000, ["<|endoftext|>"])

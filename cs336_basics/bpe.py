@@ -108,7 +108,7 @@ def train_bpe(
     vocab: dict[int, bytes] = {}
     merges: list[tuple[bytes, bytes]] = []
 
-    with open(input_path, 'r', encoding='utf-8') as f:
+    with open(input_path, encoding='utf-8') as f:
         text = f.read()
 
     # 1. initialize vocab
