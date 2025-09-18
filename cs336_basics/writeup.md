@@ -64,3 +64,16 @@ Suppose: The function will decode each single byte, but thers are some character
 ### 2.6 BPE Tokenizer: Encoding and Decoding
 
 
+### 2.7 Experiments
+
+(a)
+
+(b)
+
+(c)
+
+(d)
+
+## 3 Transformer Language Model Architecture
+
+
