@@ -1,6 +1,7 @@
 from typing import Iterable
 import json
 import re
+import regex
 
 
 class Tokenizer:
@@ -17,6 +18,8 @@ class Tokenizer:
         self.merges = merges
         self.special_tokens = special_tokens
         self.reversed_vocab = {v: k for k, v in self.vocab.items()}
+
+        self.pat = regex.compile(r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
 
         self.special_pattern = ""
         if self.special_tokens:
@@ -60,26 +63,51 @@ class Tokenizer:
         else:
             parts = [text]
 
+        merge_ranks = {merge: i for i, merge in enumerate(self.merges)}
+
         for part in parts:
             if not part:
                 continue
             if self.special_tokens and part in self.special_tokens:
                 token_id = self.reversed_vocab[part.encode('utf-8')]
                 ids.append(token_id)
-            else:
-                tokens = [bytes([b]) for b in part.encode('utf-8')]
+                continue
 
-                for p1, p2 in self.merges:
+            for part_str in regex.findall(self.pat, part):
+                part_bytes = part_str.encode('utf-8')
+                tokens = [bytes([b]) for b in part_bytes]
+
+                while len(tokens) > 1:
+                    best_pair = None
+                    min_rank = float('inf')
+                    for i in range(len(tokens) - 1):
+                        pair = (tokens[i], tokens[i+1])
+                        if pair in merge_ranks and merge_ranks[pair] < min_rank:
+                            min_rank = merge_ranks[pair]
+                            best_pair = (i, pair)
+                    if best_pair is None:
+                        break
+
+                    i, (p1, p2) = best_pair
                     new_tokens = []
-                    i = 0
-                    while i < len(tokens):
-                        if i < len(tokens) - 1 and tokens[i] == p1 and tokens[i+1] == p2:
-                            new_tokens.append(p1 + p2)
-                            i += 2
-                        else:
-                            new_tokens.append(tokens[i])
-                            i += 1
+                    if i > 0:
+                        new_tokens.extend(tokens[:i])
+                    new_tokens.append(p1 + p2)
+                    if i + 2 < len(tokens):
+                        new_tokens.extend(tokens[i+2:])
                     tokens = new_tokens
+
+                # for p1, p2 in self.merges:
+                #     new_tokens = []
+                #     i = 0
+                #     while i < len(tokens):
+                #         if i < len(tokens) - 1 and tokens[i] == p1 and tokens[i+1] == p2:
+                #             new_tokens.append(p1 + p2)
+                #             i += 2
+                #         else:
+                #             new_tokens.append(tokens[i])
+                #             i += 1
+                #     tokens = new_tokens
 
                 for token in tokens:
                     if token in self.reversed_vocab:
@@ -102,6 +130,9 @@ class Tokenizer:
 
     def decode(self, ids: list[int]) -> str:
         """Decode a sequence of token IDs into text"""
+        for idx in ids:
+            if idx not in self.vocab.keys():
+                raise ValueError(f"idx {idx} not found in vocabulary")
         tokens = b"".join(self.vocab[idx] for idx in ids)
-        text = tokens.decode('utf-8')
+        text = tokens.decode('utf-8', errors="replace")
         return text
