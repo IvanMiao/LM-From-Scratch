@@ -56,7 +56,7 @@ class Tokenizer:
 
     def encode(self, text: str) -> list[int]:
         """Encode an input text into a sequence of token IDs"""
-        ids = []
+        ids: list[int] = []
 
         if self.special_pattern:
             parts = re.split(f"({self.special_pattern})", text)
@@ -77,27 +77,27 @@ class Tokenizer:
                 part_bytes = part_str.encode('utf-8')
                 tokens = [bytes([b]) for b in part_bytes]
 
+                # Solution 1: more complicated, but efficient
                 while len(tokens) > 1:
-                    best_pair = None
-                    min_rank = float('inf')
-                    for i in range(len(tokens) - 1):
-                        pair = (tokens[i], tokens[i+1])
-                        if pair in merge_ranks and merge_ranks[pair] < min_rank:
-                            min_rank = merge_ranks[pair]
-                            best_pair = (i, pair)
-                    if best_pair is None:
+                    pairs: dict[tuple, int] = {
+                        (tokens[i], tokens[i+1]): i
+                        for i in range(len(tokens) - 1)
+                    }
+
+                    best_pair_to_merge: tuple = min(
+                        pairs,
+                        key=lambda p: merge_ranks.get(p, float("inf"))
+                    )
+                    
+                    if best_pair_to_merge not in merge_ranks:
                         break
+                        
+                    idx = pairs[best_pair_to_merge]
+                    p1, p2 = best_pair_to_merge
+                    tokens = tokens[:idx] + [p1+p2] + tokens[idx+2:]
 
-                    i, (p1, p2) = best_pair
-                    new_tokens = []
-                    if i > 0:
-                        new_tokens.extend(tokens[:i])
-                    new_tokens.append(p1 + p2)
-                    if i + 2 < len(tokens):
-                        new_tokens.extend(tokens[i+2:])
-                    tokens = new_tokens
-
-                # for p1, p2 in self.merges:
+                # Solution 2: simple, but cost more time
+                # for (p1, p2) in merge_ranks:
                 #     new_tokens = []
                 #     i = 0
                 #     while i < len(tokens):
