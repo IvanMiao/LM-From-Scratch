@@ -36,10 +36,16 @@ class Embedding(nn.Module):
             device: torch.device | None = None,
             dtype: torch.dtype | None = None
     ):
-        pass
+        """num_embeddings = vocab_size, embedding_dim = d_model"""
+        super().__init__()
+        self.num_embeddings = num_embeddings
+        self.embedding_dim = embedding_dim
+
+        w_tensor = torch.empty(num_embeddings, embedding_dim, device=device, dtype=dtype)
+        nn.init.trunc_normal_(w_tensor, mean=0, std=1, a=-3, b=3)
+        self.W = nn.Parameter(w_tensor)
 
 
     def forward(self, token_ids: torch.Tensor) -> torch.Tensor:
-        # TODO
-        return torch.zeros(1,1)
-
+        """Lookup the embedding vectors for the given token IDs."""
+        return self.W[token_ids]
