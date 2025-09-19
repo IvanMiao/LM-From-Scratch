@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import einops
 
 
 class Linear(nn.Module):
@@ -22,7 +23,9 @@ class Linear(nn.Module):
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x @ self.W.T
+        print(f"the shape of x in forward ({x.shape})")
+        res = einops.einsum(x, self.W, '... d_in, d_out d_in -> ... d_out')
+        return res
 
 
 class Embedding(nn.Module):
