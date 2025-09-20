@@ -41,6 +41,7 @@ class Embedding(nn.Module):
         self.num_embeddings = num_embeddings
         self.embedding_dim = embedding_dim
 
+        # the weight here is a look-up dictionary, but learnable
         w_tensor = torch.empty(num_embeddings, embedding_dim, device=device, dtype=dtype)
         nn.init.trunc_normal_(w_tensor, mean=0, std=1, a=-3, b=3)
         self.W = nn.Parameter(w_tensor)
@@ -49,3 +50,36 @@ class Embedding(nn.Module):
     def forward(self, token_ids: torch.Tensor) -> torch.Tensor:
         """Lookup the embedding vectors for the given token IDs."""
         return self.W[token_ids]
+
+
+class RMSNorm(nn.Module):
+    def __init__(
+            self,
+            d_model: int,
+            eps: float = 1e-5,
+            device = None,
+            dtype = None
+    ):
+        super().__init__()
+        self.d_model = d_model
+        self.eps = eps
+
+        self.W = nn.Parameter(torch.ones(d_model, device=device, dtype=dtype))
+
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        in_dtype = x.dtype
+        x = x.to(torch.float32)
+        # Calculate Root Mean Square for each element in the last dimension(d_model)
+        rms = torch.sqrt(torch.mean(x**2, dim=(-1), keepdim=True) + self.eps)
+        normalized_x = (x / rms) * self.W
+
+        return normalized_x.to(in_dtype)
+
+
+class SwiGLU_feedforward(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def forward(self):
+        pass
