@@ -46,7 +46,9 @@ Suppose: The function will decode each single byte, but thers are some character
 
 ### 2.3 Subword Tokenization
 
+
 ### 2.4 BPE Tokenizer Training
+
 
 ### 2.5 Experimenting with BPE Tokenizer Training
 
@@ -54,11 +56,11 @@ Suppose: The function will decode each single byte, but thers are some character
 
 - function `train_bpe_tinystories`
 	- (a) without using `multiprocessing`, it would cost about 18 min. After applying that, [TODO]
-	- (b) TODO
+	- (b) [TODO]
 
 - function `train_bpe_expts_owt`
-	- (a) TODO
-	- (b) TODO
+	- (a) [TODO]
+	- (b) [TODO]
 
 
 ### 2.6 BPE Tokenizer: Encoding and Decoding
@@ -76,4 +78,14 @@ Suppose: The function will decode each single byte, but thers are some character
 
 ## 3 Transformer Language Model Architecture
 
+
+### 3.1
+
+
+### 3.2 output normalization and embedding
+
+
+### 3.3 Remark: Batching, Einsum and Eﬀicient Computation
+
+pytorch -> einops
 

@@ -23,7 +23,7 @@ class Linear(nn.Module):
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        print(f"the shape of x in forward ({x.shape})")
+        print(f"the shape of x in forward is ({x.shape})")
         res = einops.einsum(x, self.W, '... d_in, d_out d_in -> ... d_out')
         return res
 
