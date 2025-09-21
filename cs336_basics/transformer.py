@@ -53,6 +53,7 @@ class Embedding(nn.Module):
 
 
 class RMSNorm(nn.Module):
+    """Root Mean Square Layer Normalization(RMS Norm)"""
     def __init__(
             self,
             d_model: int,
@@ -77,9 +78,26 @@ class RMSNorm(nn.Module):
         return normalized_x.to(in_dtype)
 
 
-class SwiGLU_feedforward(nn.Module):
-    def __init__(self) -> None:
+# SwiGLU_feedforward：Linear -> SiwGLU(SiLU/Swish + GLU) -> Linear
+class PositonWise_FeedForward(nn.Module):
+    def __init__(
+            self,
+            d_model: int,
+            device = None,
+            dtype = None
+    ) -> None:
         super().__init__()
-    
-    def forward(self):
-        pass
+        dff = int((8/3) * d_model)
+        self.dff = ((dff + 64 - 1) // 64 ) * 64
+        self.w1 = Linear(d_model, self.dff, device=device, dtype=dtype)
+        self.w2 = Linear(self.dff, d_model, device=device, dtype=dtype)
+        self.w3 = Linear(d_model, self.dff, device=device, dtype=dtype)
+
+
+    def forward(self, x: torch.Tensor):
+        silu = self.w1(x) * torch.sigmoid(self.w1(x))
+        data_value = self.w3(x)
+        gated_output = silu * data_value
+        swiglu = self.w2(gated_output)
+        return swiglu
+
