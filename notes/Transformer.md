@@ -130,3 +130,31 @@ normalized_x = (x / rms) * self.W
 在训练中，模型会通过反向传播学习 `self.W` 中的每一个值。如果模型发现第 `i` 个特征非常重要，它就会让 `self.W[i]` 的值变大；反之，则可能让其变小。
 
 
+### Positon-Wise Feed-Forward
+
+在原始Transformer论文中，Transformer 块的 feed-forward network 用的是两个线性层 + 一个ReLU激活函数。
+
+但是，现代大模型引入了门控机制 gating mechanism，使用的是 “SwiGLU” 激活函数。该激活函数合并了 SiLU(也叫Swish) 激活函数 和 GLU (Gated Linear Unit 线性门控单元)。
+
+$$
+\text{SiLU}(x) = x \cdot \sigma(x) = \frac{x}{1+e^{-x}}
+$$
+
+$\sigma$ 代表sigmoid函数
+
+$$
+\text{GLU}(x,W_1,W_2) = \sigma(W_1x) \otimes W_2(x)
+$$
+
+$\otimes$ 代表逐位相乘
+
+将 SiLU 和 GLU 合并，便得到了SwiGLU —— 我们将用它来实现前馈网络FFN：
+
+$$
+\text{FFN}(x) = \text{SwiGLU}(x,W_1,W_2,W_3) = W_2(\text{SiLU}(W_1x) \otimes W_3x)
+$$
+
+在这里， $x \in \R^{d_{model}}, W1,W3 \in \R^{d_{ff} \times d_{model}}, W_2 \in \R^{d_{model} \times d_{ff}}$, 并且一般来说 $d_{ff} = \frac{8}{3}d_{model}$
+
+
+

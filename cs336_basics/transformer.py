@@ -88,16 +88,56 @@ class PositonWise_FeedForward(nn.Module):
     ) -> None:
         super().__init__()
         dff = int((8/3) * d_model)
-        self.dff = ((dff + 64 - 1) // 64 ) * 64
+        self.dff = ((dff + 64 - 1) // 64 ) * 64 # the dim of the inner feed-forward layer is a multiple of 64
         self.w1 = Linear(d_model, self.dff, device=device, dtype=dtype)
         self.w2 = Linear(self.dff, d_model, device=device, dtype=dtype)
         self.w3 = Linear(d_model, self.dff, device=device, dtype=dtype)
 
 
     def forward(self, x: torch.Tensor):
-        silu = self.w1(x) * torch.sigmoid(self.w1(x))
+        silu = self.w1(x) * torch.sigmoid(self.w1(x)) # a sigmoid function
         data_value = self.w3(x)
         gated_output = silu * data_value
-        swiglu = self.w2(gated_output)
-        return swiglu
+        swiglu_output = self.w2(gated_output)
+        return swiglu_output
 
+
+class RotaryPositionalEmbedding(nn.Module):
+    def __init__(
+            self,
+            theta: float,
+            d_k: int,
+            max_seq_len: int,
+            device: torch.device | None = None
+    ) -> None:
+        super().__init__()
+        assert d_k % 2 == 0, "d_k must be even!"
+
+        # Precompute theta_i = theta^(-2i/d_k) for i in [0, 2, ..., d_k-2]
+        theta_i = theta ** (-torch.arange(0, d_k, 2, device=device).float() / d_k)
+        m_theta = torch.outer(torch.arange(max_seq_len, device=device), theta_i)
+
+        cos_cached = torch.cos(m_theta)
+        sin_cached = torch.sin(m_theta)
+
+        self.register_buffer('cos_cached', cos_cached, persistent=False)
+        self.register_buffer('sin_cached', sin_cached, persistent=False)
+
+
+    def forward(self, x: torch.Tensor, token_positions: torch.Tensor) -> torch.Tensor:
+        # x shape: (..., seq_len, d_k)
+        # token position shape: (..., seq_len)
+
+        cos = self.cos_cached[token_positions]
+        sin = self.sin_cached[token_positions]
+
+        x_paired = einops.rearrange(x, '... (d p) -> ... d p', p=2)
+        x1, x2 = x_paired[..., 0], x_paired[..., 1]
+
+        y1 = x1 * cos - x2 * sin
+        y2 = x2 * cos + x1 * sin
+
+        y_paired = torch.stack((y1, y2), dim=-1)
+        
+        return einops.rearrange(y_paired, '... d p -> ... (d p)')
+    
