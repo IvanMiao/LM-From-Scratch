@@ -128,8 +128,8 @@ class RotaryPositionalEmbedding(nn.Module):
         # x shape: (..., seq_len, d_k)
         # token position shape: (..., seq_len)
 
-        cos = self.cos_cached[token_positions]
-        sin = self.sin_cached[token_positions]
+        cos = self.cos_cached[token_positions] # type: ignore
+        sin = self.sin_cached[token_positions] # type: ignore
 
         x_paired = einops.rearrange(x, '... (d p) -> ... d p', p=2)
         x1, x2 = x_paired[..., 0], x_paired[..., 1]
@@ -138,6 +138,115 @@ class RotaryPositionalEmbedding(nn.Module):
         y2 = x2 * cos + x1 * sin
 
         y_paired = torch.stack((y1, y2), dim=-1)
-        
+
         return einops.rearrange(y_paired, '... d p -> ... (d p)')
 
+
+def softmax(x: torch.Tensor, i: int) -> torch.Tensor:
+    """
+    apply softmax to the i-th dimension of the input tensor.
+        x: the input tensor
+        i: dimension
+    
+    To avoid numerical overflow(inf/inf -> NaN),
+    we use a constant to subtract all inputs,
+    which will not affect the result of softmax function
+    """
+
+    max_val, _ = torch.max(x, dim=i, keepdim=True)
+    x_shifted = x - max_val
+
+    x_exp = torch.exp(x_shifted)
+    sum_exp = torch.sum(x_exp, dim=i, keepdim=True)
+
+    return x_exp / sum_exp
+
+
+def scaled_dot_product_attention(
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+        mask: torch.Tensor | None = None
+)-> torch.Tensor:
+    """
+    Implements the scaled dot-product attention mechanism
+        q: Query tensor of shape (..., seq_len_q, d_k)
+        k: Key tensor of shape (..., seq_len_k, d_k)
+        v: Value tensor of shape (..., se_len_k, d_v)
+        mask: Optional boolean mask of shape (..., seq_len_q, seq_len_k)
+
+    Output:
+        The output of the attention mechanism, with shape (..., seq_len_q, d_v)
+    """
+    d_k = q.shape[-1]
+
+    attention_scores = einops.einsum(q, k, '... seq_len_q d_k, ... seq_len_k d_k -> ... seq_len_q seq_len_k')
+    scaled_scores = attention_scores / (d_k ** 0.5)
+
+    if mask is not None:
+        scaled_scores = scaled_scores.masked_fill(mask==False, -1e9)
+
+    attention_weights = softmax(scaled_scores, i=-1)
+    output = einops.einsum(attention_weights, v, '... seq_len_q seq_len_k, ... seq_len_k d_v -> ... seq_len_q d_v')
+    return output
+
+
+class Multihead_Self_Attention(nn.Module):
+    def __init__(
+            self, d_model: int,
+            num_heads: int,
+            max_seq_len: int,
+            theta: float = 10000.0
+    ):
+        super().__init__()
+        assert d_model % num_heads == 0, "d_model must be divisible by num_heads"
+
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.d_k = d_model // num_heads
+        self.rope = RotaryPositionalEmbedding(
+            theta=theta,
+            d_k=self.d_k,
+            max_seq_len=max_seq_len
+        )
+
+        self.q_proj = Linear(d_model, d_model)
+        self.k_proj = Linear(d_model, d_model)
+        self.v_proj = Linear(d_model, d_model)
+        self.o_proj = Linear(d_model, d_model)
+
+
+    def forward(self, x: torch.Tensor, token_position: torch.Tensor) -> torch.Tensor:
+        # x: (batch_size, seq_len, d_model)
+        # token_position: (batch_size, seq_len)
+        batch_size, seq_len, _ = x.shape
+
+        # 1. Project to K, Q ,V
+        q = self.q_proj(x)
+        k = self.k_proj(x)
+        v = self.v_proj(x)
+
+        # 2. Split into multiple heads
+        # (batch, seq_len, d_model) -> (batch, num_heads, seq_len, d_k)
+        q = einops.rearrange(q, 'b s (h d) -> b h s d', h=self.num_heads)
+        k = einops.rearrange(k, 'b s (h d) -> b h s d', h=self.num_heads)
+        v = einops.rearrange(v, 'b s (h d) -> b h s d', h=self.num_heads)
+
+        # 3. Apply RoPE to Q and K
+        # The head dimension is treated as a batch dimension for RoPE
+        q = self.rope(q, token_position)
+        k = self.rope(k, token_position)
+
+        # 4. Create causal mask
+        # This prevent attention to future tokens
+        mask = torch.triu(torch.ones((seq_len, seq_len), dtype=torch.bool), diagonal=1)
+        causal_mask = ~mask
+
+        # 5. Scaled dot product attention
+        attention_output = scaled_dot_product_attention(q, k, v, mask=causal_mask)
+
+        # 6. Concatenate heads and apply final projection
+        # (batch, num_heads, seq_len, d_k) -> (batch, seq_len, d_model)
+        output = einops.rearrange(attention_output, 'b h s d -> b s (h d)')
+
+        return self.o_proj(output)
