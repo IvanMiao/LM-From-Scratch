@@ -140,4 +140,4 @@ class RotaryPositionalEmbedding(nn.Module):
         y_paired = torch.stack((y1, y2), dim=-1)
         
         return einops.rearrange(y_paired, '... d p -> ... (d p)')
-    
+

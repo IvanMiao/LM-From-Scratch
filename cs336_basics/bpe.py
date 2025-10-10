@@ -118,7 +118,7 @@ def train_bpe(
     # =========================================
     # 2. pre-tokenizaiton
     # token_data: key     以bytes表示的token，
-    #             value   一个 tupel, (这个token的出现次数, 这个token的每个字节组成的整数列表)
+    #             value   一个 tupel, (该token的出现次数, 该token的每个字节组成的整数列表)
     # =========================================
     token_data: dict[bytes, tuple[int, list[int]]] = {}
     token_data = get_token_data(special_tokens ,text)
