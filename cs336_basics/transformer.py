@@ -141,6 +141,7 @@ class RotaryPositionalEmbedding(nn.Module):
         return einops.rearrange(y_paired, '... d p -> ... (d p)')
 
 
+# FUNCTION
 def softmax(x: torch.Tensor, i: int) -> torch.Tensor:
     """
     apply softmax to the i-th dimension of the input tensor.
@@ -161,6 +162,8 @@ def softmax(x: torch.Tensor, i: int) -> torch.Tensor:
     return x_exp / sum_exp
 
 
+# FUNCTION
+# softmax((q @ k.T) / sqrt(d_k) + mask) @ v
 def scaled_dot_product_attention(
         q: torch.Tensor,
         k: torch.Tensor,
