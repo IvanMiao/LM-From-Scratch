@@ -88,10 +88,10 @@ class Tokenizer:
                         pairs,
                         key=lambda p: merge_ranks.get(p, float("inf"))
                     )
-                    
+
                     if best_pair_to_merge not in merge_ranks:
                         break
-                        
+
                     idx = pairs[best_pair_to_merge]
                     p1, p2 = best_pair_to_merge
                     tokens = tokens[:idx] + [p1+p2] + tokens[idx+2:]

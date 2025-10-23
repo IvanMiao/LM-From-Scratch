@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import einops
 
 
@@ -88,14 +87,14 @@ class PositonWise_FeedForward(nn.Module):
     ) -> None:
         super().__init__()
         dff = int((8/3) * d_model)
-        self.dff = ((dff + 64 - 1) // 64 ) * 64 # the dim of the inner feed-forward layer is a multiple of 64
+        self.dff = ((dff + 64 - 1) // 64 ) * 64  # the dim of the inner feed-forward layer is a multiple of 64
         self.w1 = Linear(d_model, self.dff, device=device, dtype=dtype)
         self.w2 = Linear(self.dff, d_model, device=device, dtype=dtype)
         self.w3 = Linear(d_model, self.dff, device=device, dtype=dtype)
 
 
     def forward(self, x: torch.Tensor):
-        silu = self.w1(x) * torch.sigmoid(self.w1(x)) # a sigmoid function
+        silu = self.w1(x) * torch.sigmoid(self.w1(x))  # a sigmoid function
         data_value = self.w3(x)
         gated_output = silu * data_value
         swiglu_output = self.w2(gated_output)
@@ -128,8 +127,8 @@ class RotaryPositionalEmbedding(nn.Module):
         # x shape: (..., seq_len, d_k)
         # token position shape: (..., seq_len)
 
-        cos = self.cos_cached[token_positions] # type: ignore
-        sin = self.sin_cached[token_positions] # type: ignore
+        cos = self.cos_cached[token_positions]  # type: ignore
+        sin = self.sin_cached[token_positions]  # type: ignore
 
         x_paired = einops.rearrange(x, '... (d p) -> ... d p', p=2)
         x1, x2 = x_paired[..., 0], x_paired[..., 1]
@@ -196,7 +195,8 @@ class Multihead_Self_Attention(nn.Module):
             self, d_model: int,
             num_heads: int,
             max_seq_len: int,
-            theta: float = 10000.0
+            theta: float = 10000.0,
+            use_rope: bool = True
     ):
         super().__init__()
         assert d_model % num_heads == 0, "d_model must be divisible by num_heads"
@@ -204,11 +204,14 @@ class Multihead_Self_Attention(nn.Module):
         self.d_model = d_model
         self.num_heads = num_heads
         self.d_k = d_model // num_heads
-        self.rope = RotaryPositionalEmbedding(
-            theta=theta,
-            d_k=self.d_k,
-            max_seq_len=max_seq_len
-        )
+        if use_rope:
+            self.rope = RotaryPositionalEmbedding(
+                theta=theta,
+                d_k=self.d_k,
+                max_seq_len=max_seq_len
+            )
+        else:
+            self.rope = None
 
         self.q_proj = Linear(d_model, d_model)
         self.k_proj = Linear(d_model, d_model)
@@ -232,10 +235,12 @@ class Multihead_Self_Attention(nn.Module):
         k = einops.rearrange(k, 'b s (h d) -> b h s d', h=self.num_heads)
         v = einops.rearrange(v, 'b s (h d) -> b h s d', h=self.num_heads)
 
-        # 3. Apply RoPE to Q and K
+        # 3. Apply RoPE to Q and K (if use_rope is True)
         # The head dimension is treated as a batch dimension for RoPE
-        q = self.rope(q, token_position)
-        k = self.rope(k, token_position)
+        if self.rope is not None:
+            assert token_position is not None, "token_position must be provided when using RoPE"
+            q = self.rope(q, token_position)
+            k = self.rope(k, token_position)
 
         # 4. Create causal mask
         # This prevent attention to future tokens

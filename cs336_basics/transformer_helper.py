@@ -7,7 +7,7 @@ def softmax(x: torch.Tensor, i: int) -> torch.Tensor:
     apply softmax to the i-th dimension of the input tensor.
         x: the input tensor
         i: dimension
-    
+
     To avoid numerical overflow(inf/inf -> NaN),
     we use a constant to subtract all inputs,
     which will not affect the result of softmax function

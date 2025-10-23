@@ -17,8 +17,10 @@ def merge(
     pair: tuple[int, int],
     new_index: int
 ) -> list[int]:
-    """Return `indices`(list of ints, representing the byte sequence of a token),
-    but with all instances of `pair` replaced with `new_index`."""
+    """
+    Return `indices` (list of ints, representing the byte sequence of a token),
+    but with all instances of `pair` replaced with `new_index`.
+    """
     new_indices = []
     i = 0
     while i < len(indices):
@@ -32,7 +34,11 @@ def merge(
 
 
 def initialize_vocab(special_tokens: list[str]) -> dict[int, bytes]:
-    """创建初始词汇表 vocab, 先储存0-255的整数-字节表示的映射, 然后从256开始为特殊token分配ID"""
+    """
+    Create the initial vocab.
+    First store the mapping of integers 0-255 to their byte representations
+    then assign IDs to the provided special tokens starting from 256.
+    """
     vocab = {i: bytes([i]) for i in range(256)}
     next_id = 256
 
@@ -49,12 +55,12 @@ def get_token_data(
     text:str
 ) -> dict[bytes, tuple[int, list[int]]]:
     """
-    pre-tokenization, 收集初始 token 的数据
-    return: token_data
-            key:    初始token的字节表示
-            value:  一个tuple (count, seq),
-                    count 为该token在文本中出现的次数,
-                    seq 是该token每个字节对应的整数列表
+    pre-tokenization: collect data for the initial tokens.
+    return: token_data: dict where
+            key:    token bytes
+            value:  a tuple (count, seq) where
+                    count: occurrence of the token in the text
+                    seq: a list of intergers corresponding to eeach byte of the token
     """
     token_counts: dict[bytes, int] = {}
     token_data: dict[bytes, tuple[int, list[int]]] = {}
@@ -174,4 +180,5 @@ def train_bpe_expts_owt():
     pass
 
 
-# train_bpe("../data/TinyStoriesV2-GPT4-valid.txt", 10000, ["<|endoftext|>"])
+# voc, mer = train_bpe("../data/TinyStoriesV2-GPT4-valid.txt", 10000, ["<|endoftext|>"])
+
