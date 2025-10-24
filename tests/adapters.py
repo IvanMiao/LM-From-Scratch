@@ -119,7 +119,7 @@ def run_scaled_dot_product_attention(
     Returns:
         Float[Tensor, " ... queries d_v"]: Output of SDPA
     """
-    from cs336_basics.transformer_helper import scaled_dot_product_attention
+    from cs336_basics.transformer import scaled_dot_product_attention
 
     res = scaled_dot_product_attention(Q, K, V, mask)
     return res
@@ -309,7 +309,40 @@ def run_transformer_block(
         Float[Tensor, "batch sequence_length d_model"] Tensor with the output of
         running the Transformer block on the input features while using RoPE.
     """
-    raise NotImplementedError
+    from cs336_basics.full_transformer_lm import TransformerBlock
+
+    transformer_block = TransformerBlock(
+        d_model=d_model,
+        num_heads=num_heads,
+        d_ff=d_ff,
+        max_seq_len=max_seq_len,
+    )
+
+    if transformer_block.attention.rope is not None:
+        from cs336_basics.full_transformer_lm import Multihead_Self_Attention
+        transformer_block.attention = Multihead_Self_Attention(
+            d_model=d_model,
+            num_heads=num_heads,
+            max_seq_len=max_seq_len,
+            theta=theta,
+            use_rope=True
+        )
+    
+    transformer_block.norm1.W.data = weights["ln1.weight"]
+    transformer_block.attention.q_proj.W.data = weights["attn.q_proj.weight"]
+    transformer_block.attention.k_proj.W.data = weights["attn.k_proj.weight"]
+    transformer_block.attention.v_proj.W.data = weights["attn.v_proj.weight"]
+    transformer_block.attention.o_proj.W.data = weights["attn.output_proj.weight"]
+
+    transformer_block.norm2.W.data = weights["ln2.weight"]
+    transformer_block.feed_forward.w1.W.data = weights["ffn.w1.weight"]
+    transformer_block.feed_forward.w2.W.data = weights["ffn.w2.weight"]
+    transformer_block.feed_forward.w3.W.data = weights["ffn.w3.weight"]
+
+    batch_size, seq_len, _ = in_features.shape
+    token_positions = torch.arange(seq_len).unsqueeze(0).expand(batch_size, -1)
+
+    return transformer_block(in_features, token_positions)
 
 
 def run_transformer_lm(
@@ -336,7 +369,7 @@ def run_transformer_lm(
         num_heads (int): Number of heads to use in multi-headed attention. `d_model` must be
             evenly divisible by `num_heads`.
         d_ff (int): Dimensionality of the feed-forward inner layer (section 3.3).
-        rope_theta (float): The RoPE $\Theta$ parameter.
+        rope_theta (float): The RoPE $Theta$ parameter.
         weights (dict[str, Tensor]):
             State dict of our reference implementation. {num_layers} refers to an
             integer between `0` and `num_layers - 1` (the layer index).
@@ -471,7 +504,7 @@ def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, "
         Float[Tensor, "..."]: Tensor of with the same shape as `in_features` with the output of
         softmax normalizing the specified `dim`.
     """
-    from cs336_basics.transformer_helper import softmax
+    from cs336_basics.transformer import softmax
 
     res = softmax(in_features, dim)
     return res
