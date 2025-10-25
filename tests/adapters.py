@@ -119,7 +119,7 @@ def run_scaled_dot_product_attention(
     Returns:
         Float[Tensor, " ... queries d_v"]: Output of SDPA
     """
-    from cs336_basics.transformer import scaled_dot_product_attention
+    from cs336_basics.nn_utils import scaled_dot_product_attention
 
     res = scaled_dot_product_attention(Q, K, V, mask)
     return res
@@ -546,7 +546,7 @@ def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, "
         Float[Tensor, "..."]: Tensor of with the same shape as `in_features` with the output of
         softmax normalizing the specified `dim`.
     """
-    from cs336_basics.transformer import softmax
+    from cs336_basics.nn_utils import softmax
 
     res = softmax(in_features, dim)
     return res
