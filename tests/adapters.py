@@ -424,7 +424,49 @@ def run_transformer_lm(
         Float[Tensor, "batch_size sequence_length vocab_size"]: Tensor with the predicted unnormalized
         next-word distribution for each token.
     """
-    raise NotImplementedError
+    from cs336_basics.full_transformer_lm import TransformerLM, TransformerBlock
+    from cs336_basics.transformer import Multihead_Self_Attention
+
+    lm = TransformerLM(
+        vocab_size=vocab_size,
+        context_length=context_length,
+        num_layers=num_layers,
+        d_model=d_model,
+        num_heads=num_heads,
+        d_ff=d_ff,
+        max_seq_len=context_length
+    )
+
+    lm.embedding.W.data = weights["token_embeddings.weight"]
+    lm.norm.W.data = weights["ln_final.weight"]
+    lm.linear.W.data = weights["lm_head.weight"]
+
+    for i, layer in enumerate(lm.layers):
+        layer: TransformerBlock
+
+        layer.attention = Multihead_Self_Attention(
+            d_model=d_model,
+            num_heads=num_heads,
+            max_seq_len=context_length,
+            theta=rope_theta,
+            use_rope=True
+        )
+
+        layer.attention.q_proj.W.data = weights[f"layers.{i}.attn.q_proj.weight"]
+        layer.attention.k_proj.W.data = weights[f"layers.{i}.attn.k_proj.weight"]
+        layer.attention.v_proj.W.data = weights[f"layers.{i}.attn.v_proj.weight"]
+        layer.attention.o_proj.W.data = weights[f"layers.{i}.attn.output_proj.weight"]
+
+        # Feed-forward weights
+        layer.feed_forward.w1.W.data = weights[f"layers.{i}.ffn.w1.weight"]
+        layer.feed_forward.w2.W.data = weights[f"layers.{i}.ffn.w2.weight"]
+        layer.feed_forward.w3.W.data = weights[f"layers.{i}.ffn.w3.weight"]
+
+        # Norm weights
+        layer.norm1.W.data = weights[f"layers.{i}.ln1.weight"]
+        layer.norm2.W.data = weights[f"layers.{i}.ln2.weight"]
+
+    return lm(in_indices)
 
 
 def run_rmsnorm(
