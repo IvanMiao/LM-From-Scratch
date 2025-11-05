@@ -5,7 +5,7 @@ This repository contains my implementation for Assignment 1 of CS336.
 This project consists of:
 - a BPE tokenizer
 - a Transformer language model, including a Linear module, an Embedding module, and a Pre-Norm Transformer Block (with RoPE, Causal Multi-Head Self-Attention)
-- a training loop featuring Cross-entropy loss, SGD and AdamW optimizers, learning rate scheduling, and gradient clipping
+- a training loop featuring Cross-entropy loss, AdamW optimizer, learning rate scheduling, and gradient clipping
 
 For a full description of the assignment, see the assignment handout at
 [cs336_spring2025_assignment1_basics.pdf](./cs336_spring2025_assignment1_basics.pdf)

@@ -60,13 +60,13 @@ def cross_entropy(logits: torch.Tensor, targets: torch.Tensor):
     targets: (B,)
     """
 
-    # (N, V) -> (N, 1)
+    # (B, V) -> (B, 1)
     max_logits, _ = torch.max(logits, dim=-1, keepdim=True)
     norm_logits = logits - max_logits # o_j - m
 
     log_denominator = torch.log(torch.sum(torch.exp(norm_logits), dim=-1, keepdim=True))
 
-    # target: (N,) -> (N, 1)
+    # target: (B,) -> (B, 1)
     target_indices = targets.unsqueeze(1)
     log_numerator = torch.gather(norm_logits, -1, index=target_indices) # log(p_i)
 
