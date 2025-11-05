@@ -1,11 +1,11 @@
-# CS336 Spring 2025 Assignment 1: Basics
+# LM From Scratch
 
-This is my implementation of CS336 Assignment 1.
+This repository contains my implementation for Assignment 1 of CS336.
 
 This project consists of:
-- a BPE tokenize
-- a transformer language model: Linear module, Embedding module, Pre-Norm Transformer Block(RoPE, Causal Multi-Head Self-Attention)
-- a training loop(Cross-entropy loss, SGD Optimizer, AdamW, Learning rate, Gradient clipping)
+- a BPE tokenizer
+- a Transformer language model, including a Linear module, an Embedding module, and a Pre-Norm Transformer Block (with RoPE, Causal Multi-Head Self-Attention)
+- a training loop featuring Cross-entropy loss, SGD and AdamW optimizers, learning rate scheduling, and gradient clipping
 
 For a full description of the assignment, see the assignment handout at
 [cs336_spring2025_assignment1_basics.pdf](./cs336_spring2025_assignment1_basics.pdf)
@@ -14,7 +14,7 @@ For a full description of the assignment, see the assignment handout at
 
 ### Environment
 
-This project uses `uv`.
+This project uses `uv` for environment management.
 
 You can run any code in the repo using
 ```sh
@@ -24,14 +24,12 @@ and the environment will be automatically solved and activated when necessary.
 
 ### Run unit tests
 
-
 ```sh
 uv run pytest
 ```
 
 Initially, all tests should fail with `NotImplementedError`s.
-To connect your implementation to the tests, complete the
-functions in [./tests/adapters.py](./tests/adapters.py).
+I connected my implementation to the tests, by completing the functions in [./tests/adapters.py](./tests/adapters.py).
 
 ### Download data
 Download the TinyStories data and a subsample of OpenWebText
