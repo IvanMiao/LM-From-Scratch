@@ -125,8 +125,10 @@ class RotaryPositionalEmbedding(nn.Module):
 
 
     def forward(self, x: torch.Tensor, token_positions: torch.Tensor) -> torch.Tensor:
-        # x shape: (..., seq_len, d_k)
-        # token position shape: (..., seq_len)
+        """
+        x shape: (..., seq_len, d_k)
+        token position shape: (..., seq_len)
+        """
 
         cos = self.cos_cached[token_positions]  # type: ignore
         sin = self.sin_cached[token_positions]  # type: ignore
@@ -172,8 +174,10 @@ class Multihead_Self_Attention(nn.Module):
 
 
     def forward(self, x: torch.Tensor, token_position: torch.Tensor) -> torch.Tensor:
-        # x: (batch_size, seq_len, d_model)
-        # token_position: (batch_size, seq_len)
+        """
+        x: (batch_size, seq_len, d_model)
+        token_position: (batch_size, seq_len)
+        """
         batch_size, seq_len, _ = x.shape
 
         # 1. Project to K, Q ,V

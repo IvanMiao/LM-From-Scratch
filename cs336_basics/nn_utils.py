@@ -52,3 +52,27 @@ def scaled_dot_product_attention(
     output = einops.einsum(attention_weights, v, '... seq_len_q seq_len_k, ... seq_len_k d_v -> ... seq_len_q d_v')
 
     return output
+
+
+def cross_entropy(logits: torch.Tensor, targets: torch.Tensor):
+    """
+    logits: (B, L, V)
+    targets: (B, L)
+    """
+    reshaped_logits = einops.rearrange(logits, 'B L V -> (B L) V', V=logits.shape[-1])
+    reshaped_target = einops.rearrange(targets, 'B L -> (B L)')
+
+    # (N, V) -> (N, 1)
+    max_logits, _ = torch.max(reshaped_logits, dim=-1, keepdim=True)
+    norm_logits = reshaped_logits - max_logits # o_j - m
+
+    log_denominator = torch.log(torch.sum(torch.exp(norm_logits), dim=-1, keepdim=True))
+
+    # target: (N,) -> (N, 1)
+    target_indices = reshaped_target.unsqueeze(1)
+    log_numerator = torch.gather(norm_logits, -1, index=target_indices) # log(p_i)
+
+    sample_loss = -(log_numerator - log_denominator)
+    final_loss = torch.mean(sample_loss)
+    return final_loss
+
