@@ -74,3 +74,9 @@ def cross_entropy(logits: torch.Tensor, targets: torch.Tensor):
     final_loss = torch.mean(sample_loss)
     return final_loss
 
+
+def learning_rate_schedule(step, lr_max, lr_min, t_w, t_c):
+    pass
+
+
+def gradient_clipping()
