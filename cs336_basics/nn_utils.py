@@ -76,7 +76,14 @@ def cross_entropy(logits: torch.Tensor, targets: torch.Tensor):
 
 
 def learning_rate_schedule(step, lr_max, lr_min, t_w, t_c):
+    if step < t_w:
+        return (step / t_w) * lr_max
+    elif step >= t_w and step <= t_c:
+        import math
+        return (lr_min + 0.5 * (lr_max - lr_min) * (1 + math.cos(math.pi * (step - t_w) / (t_c - t_w) )))
+    else:
+        return lr_min
+
+
+def gradient_clipping():
     pass
-
-
-def gradient_clipping()
