@@ -96,3 +96,20 @@ def gradient_clipping(parameters, max_norm):
     if clip_coef < 1:
         for g in grads:
             g.detach().mul_(clip_coef)
+
+
+def data_loader(
+        x: torch.Tensor,
+        batch_size,
+        context_length,
+        device: str
+) -> tuple[torch.Tensor, torch.Tensor]:
+    
+    max_start_index = len(x) - context_length
+    start_indices = torch.randint(0, max_start_index, (batch_size,))
+
+    x_batch = torch.stack([x[i:i+context_length] for i in start_indices])
+    y_batch = torch.stack([x[i+1:i+context_length+1] for i in start_indices])
+
+    return (x_batch.to(device), y_batch.to(device))
+

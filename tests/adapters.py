@@ -530,7 +530,12 @@ def run_get_batch(
         is the sampled input sequences, and the second tuple item is the corresponding
         language modeling labels.
     """
-    raise NotImplementedError
+    from cs336_basics.nn_utils import data_loader
+
+    dataset_tensor = torch.from_numpy(dataset).long()
+    res = data_loader(dataset_tensor, batch_size, context_length, device)
+
+    return res
 
 
 def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, " ..."]:
