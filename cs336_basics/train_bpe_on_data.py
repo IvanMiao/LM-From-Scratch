@@ -3,6 +3,7 @@
 import os
 import regex
 from tqdm import tqdm
+import json
 
 
 # 用于 pre-tokenizaiton 的正则表达式，将原始文本分隔成初始的chunks。这里用的是GPT-2所使用的模式。
@@ -174,11 +175,32 @@ def train_bpe(
 
 
 def train_bpe_tinystories():
-    pass
+    input_path = "./data/TinyStoriesV2-GPT4-train.txt"
+    vocab_size = 62265
+    vocab, merges = train_bpe(input_path, vocab_size, ["<|endoftext|>"])
+
+    vocab_filepath = "tinystories_vocab.json"
+    print(f"Saving vocabulary to {vocab_filepath}")
+    # We need to decode bytes to strings to save as JSON.
+    # We use 'latin-1' because it can represent any byte value,
+    # preventing errors with bytes that aren't valid UTF-8.
+    serializable_vocab = {k: v.decode('latin-1') for k, v in vocab.items()}
+    with open(vocab_filepath, 'w', encoding='utf-8') as f:
+        json.dump(serializable_vocab, f, ensure_ascii=False, indent=2)
+
+    # Save the merges to a file
+    merges_filepath = "tinystories_merges.txt"
+    print(f"Saving merges to {merges_filepath}")
+    with open(merges_filepath, 'w', encoding='utf-8') as f:
+        for token1, token2 in merges:
+            # Decode bytes to strings for writing to the text file
+            f.write(f"{token1.decode('latin-1')} {token2.decode('latin-1')}\n")
+    
+    print("BPE training and saving for TinyStories complete.")
 
 
 def train_bpe_expts_owt():
     pass
 
 
-train_bpe("../data/TinyStoriesV2-GPT4-valid.txt", 10000, ["<|endoftext|>"])
+train_bpe_tinystories()
