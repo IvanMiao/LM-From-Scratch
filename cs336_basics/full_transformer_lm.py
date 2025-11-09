@@ -26,7 +26,8 @@ class TransformerBlock(nn.Module):
 
     def forward(self, x: torch.Tensor, token_positions: torch.Tensor) -> torch.Tensor:
         attn_input = self.norm1(x)
-        attn_output = self.attention(attn_input, token_positions)
+        tk_pos_expand = token_positions.unsqueeze(1)
+        attn_output = self.attention(attn_input, tk_pos_expand)
         y = x + attn_output
 
         ff_input = self.norm2(y)
@@ -67,7 +68,7 @@ class TransformerLM(nn.Module):
         # x.shape: batch_size, sequence_length
         transformer_res = self.embedding(x)
         batch_size, seq_len, _ = transformer_res.shape
-        token_positions = torch.arange(seq_len).unsqueeze(0).expand(batch_size, -1)
+        token_positions = torch.arange(seq_len, device=x.device).unsqueeze(0).expand(batch_size, -1)
 
         for layer in self.layers:
             transformer_res = layer(transformer_res, token_positions)
