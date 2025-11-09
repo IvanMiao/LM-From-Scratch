@@ -184,7 +184,7 @@ def train_bpe_tinystories():
     # We need to decode bytes to strings to save as JSON.
     # We use 'latin-1' because it can represent any byte value,
     # preventing errors with bytes that aren't valid UTF-8.
-    serializable_vocab = {k: v.decode('latin-1') for k, v in vocab.items()}
+    serializable_vocab = {k: v.decode('latin-1') for k, v in vocab.items()} # NOTE: doubt for latin-1
     with open(vocab_filepath, 'w', encoding='utf-8') as f:
         json.dump(serializable_vocab, f, ensure_ascii=False, indent=2)
 
